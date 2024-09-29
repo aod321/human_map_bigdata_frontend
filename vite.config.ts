@@ -29,7 +29,7 @@ export default defineConfig(({ command, mode }: ConfigEnv): UserConfig => {
 
 	const isBuild = command === 'build'
 	return {
-		base: VITE_PUBLIC_PATH,
+		base: VITE_PUBLIC_PATH, // 确保这个值是正确的，通常为 '/'
 		// 使用 esbuild 压缩 剔除 console.log
 		esbuild: {
 			pure: VITE_DROP_CONSOLE ? ['console.log', 'debugger'] : [],
@@ -137,5 +137,6 @@ export default defineConfig(({ command, mode }: ConfigEnv): UserConfig => {
 				lastBuildTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
 			}),
 		},
+		// Removed duplicate 'base' property
 	}
 })

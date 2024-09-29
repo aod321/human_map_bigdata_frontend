@@ -6,148 +6,305 @@
  * @FilePath: \src\views\index\index.vue
 -->
 <template>
-	<div class="index">
-		<div class="content">
-			<div class="banner">
-				<van-swipe :autoplay="30000" lazy-render indicator-color="#fff">
-					<van-swipe-item v-for="image in images" :key="image">
-						<img class="img" :src="image">
-					</van-swipe-item>
-				</van-swipe>
-			</div>
-			<van-field
-				v-model="time"
-				is-link
-				readonly
-				label="开始时间"
-				placeholder="选择开始时间"
-				@click="show = true"
-			/>
-			<van-popup
-				v-model:show="show"
-				round
-				position="bottom"
-				:style="{ height: '35%', overflow: 'hidden' }"
-			>
-				<van-date-picker
-					title="选择日期"
-					:min-date="minDate"
-					:max-date="maxDate"
-					@cancel="cancel"
-					@confirm="confirm"
+	<div class="experiment">
+		<h2>Trial {{ currentTrial }} / {{ totalTrials }}</h2>
+		<van-progress :percentage="experimentProgress" :stroke-width="8" />
+		<van-row class="content">
+			<van-col span="24">
+				<h1 class="prompt">
+					<van-highlight :keywords="['更难']" :source-string="prompt" />
+				</h1>
+			</van-col>
+			<van-col span="24" class="image-choice">
+				<van-image
+					v-for="(img, index) in currentImages"
+					:key="index"
+					:src="img.image_url"
+					:width="imageWidth"
+					:height="imageHeight"
+					fit="contain"
+					:radius="imageRadius"
+					:class="{ disabled: isClicked }"
+					@click="handleClick(img.id, index)"
 				/>
-			</van-popup>
-		</div>
-		<div class="h-88px">
-			<better-scroll ref="bsScroll" :options="{ scrollX: true, scrollY: false }">
-				<div class="bg-[#F22A25] opacity-80 btn">
-					立即叫车
-				</div>
-				<div class="bg-[#F22A25] opacity-80 btn">
-					立即叫车
-				</div>
-				<div class="bg-[#F22A25] opacity-80 btn">
-					立即叫车
-				</div>
-				<div class="bg-[#F22A25] opacity-80 btn">
-					立即叫车
-				</div>
-				<div class="bg-[#F22A25] opacity-80 btn">
-					立即叫车
-				</div>
-				<div class="bg-[#F22A25] opacity-80 btn">
-					立即叫车
-				</div>
-				<div class="bg-[#F22A25] opacity-80 btn">
-					立即叫车
-				</div>
-			</better-scroll>
-		</div>
-		<div class="bg-[#F22A25] opacity-80 btn">
-			立即叫车
-		</div>
+			</van-col>
+		</van-row>
 	</div>
 </template>
 
-<script lang="ts" setup name="Index">
-import type { PickerConfirmEventParams } from 'vant'
-import type { BScrollInstance } from 'better-scroll'
-import { useAppStore } from '@/store/modules/home'
+<script lang="ts" setup>
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { showToast } from 'vant'
 
-onBeforeMount(() => {
-	console.log(123)
-})
-const appStore = useAppStore()
-const images = reactive<string[]>([
-	'https://cdn.jsdelivr.net/npm/@vant/assets/apple-1.jpeg',
-	'https://cdn.jsdelivr.net/npm/@vant/assets/apple-2.jpeg',
-])
+const router = useRouter()
 
-const time = ref('')
-const minDate = new Date(2021, 0, 1)
-const maxDate = new Date(2023, 10, 1)
-const show = ref(false)
-const bsScroll = ref<BScrollInstance>()
-onMounted(async () => {
-	await appStore.getSelectBusinessApi()
-})
-function confirm({ selectedOptions }: PickerConfirmEventParams) {
-	console.log(selectedOptions)
-	show.value = false
-	time.value = selectedOptions.reduce((pre, next) => pre + (pre ? '-' : '') + next?.text, '')
+const prompt = ref('请点击看起来更难导航的图片')
+const allImages = ref<{ id: number, image_url: string }[]>([])
+const currentImages = ref<{ id: number, image_url: string }[]>([])
+const catchImages = ref<{ id: string, image_url: string }[]>([])
+const currentTrial = ref(1)
+const trialData = ref<any[]>([])
+
+const imageWidth = ref('80%')
+const imageHeight = ref('35vh')
+const maxImageWidth = 400
+const imageRadius = ref('12px')
+
+const startTime = ref(0)
+
+const totalTrials = ref(101) // 100 regular trials + 1 catch trial
+const catchTrialIndex = ref(Math.floor(Math.random() * 100) + 1) // Random position for catch trial
+
+// Add these lines to define loading and loadingProgress
+const loading = ref(false)
+const loadingProgress = ref(0)
+
+// Add this line to prevent multiple clicks
+const isClicked = ref(false)
+
+// Calculate experiment progress
+const experimentProgress = computed(() => Math.floor((currentTrial.value - 1) / totalTrials.value * 100))
+
+function calculateImageSize() {
+	const screenHeight = window.innerHeight
+	const screenWidth = window.innerWidth
+
+	// 统一桌面和移动设备的处理逻辑
+	imageHeight.value = `${screenHeight * 0.35}px`
+
+	// 计算图片宽度，但不超过maxImageWidth
+	const calculatedWidth = Math.min(screenWidth * 0.8, maxImageWidth)
+	imageWidth.value = `${calculatedWidth}px`
+
+	// 根据屏幕宽度动态设置圆角大小
+	imageRadius.value = screenWidth < 768 ? '12px' : '24px'
 }
-function cancel() {
-	show.value = false
+
+// Load saved state from localStorage
+function loadSavedState() {
+	const savedState = localStorage.getItem('experimentState')
+	if (savedState) {
+		const parsedState = JSON.parse(savedState)
+		currentTrial.value = parsedState.currentTrial
+		trialData.value = parsedState.trialData
+		allImages.value = parsedState.allImages
+		catchTrialIndex.value = parsedState.catchTrialIndex
+		catchImages.value = parsedState.catchImages
+	}
+}
+
+// Save current state to localStorage
+function saveState() {
+	const state = {
+		currentTrial: currentTrial.value,
+		trialData: trialData.value,
+		allImages: allImages.value,
+		catchTrialIndex: catchTrialIndex.value,
+		catchImages: catchImages.value,
+	}
+	localStorage.setItem('experimentState', JSON.stringify(state))
+}
+
+// Watch for changes in currentTrial and trialData
+watch([currentTrial, trialData, totalTrials], saveState, { deep: true })
+
+function startTrial() {
+	if (currentTrial.value > totalTrials.value) {
+		submitData()
+		return
+	}
+
+	if (currentTrial.value === catchTrialIndex.value) {
+		// Set up catch trial
+		currentImages.value = catchImages.value
+	}
+	else {
+		// Set up regular trial
+		const shuffled = [...allImages.value].sort(() => 0.5 - Math.random())
+		currentImages.value = shuffled.slice(0, 2)
+	}
+	startTime.value = Date.now()
+	isClicked.value = false // Reset isClicked at the start of each trial
+}
+
+function handleClick(imageId: number | string, index: number) {
+	if (isClicked.value) {
+		return
+	} // Prevent multiple clicks
+
+	isClicked.value = true // Set isClicked to true to prevent further clicks
+	const endTime = Date.now()
+	const reactionTime = endTime - startTime.value
+
+	const trialType = currentTrial.value === catchTrialIndex.value ? 'catch' : 'regular'
+
+	trialData.value.push({
+		trial_id: currentTrial.value,
+		trial_type: trialType,
+		image1_id: currentImages.value[0].id,
+		image2_id: currentImages.value[1].id,
+		selected_index: index,
+		selected_image_id: imageId,
+		reaction_time: reactionTime,
+		timestamp: endTime,
+	})
+
+	currentTrial.value++
+	if (currentTrial.value <= totalTrials.value) {
+		startTrial() // 直接开始下一个试验，不使用延迟
+	}
+	else {
+		submitData()
+	}
+}
+
+function submitData() {
+	const participantInfo = JSON.parse(localStorage.getItem('participantInfo') || '{}')
+	const experimentData = {
+		participantInfo,
+		trialData: trialData.value,
+	}
+
+	// TODO: Implement logic to submit data to the server
+	console.log('Submitting data:', experimentData)
+
+	// Simulating data submission with a timeout
+	loading.value = true
+	loadingProgress.value = 0
+	const interval = setInterval(() => {
+		loadingProgress.value += 10
+		if (loadingProgress.value >= 100) {
+			clearInterval(interval)
+			loading.value = false
+			// Mark data as submitted
+			localStorage.setItem('dataSubmitted', 'true')
+			// Clear saved state after successful submission
+			localStorage.removeItem('experimentState')
+			router.push('/experiment-end')
+		}
+	}, 200)
+
+	// Show a toast message
+	showToast('数据提交中...')
+}
+
+// Modify the checkAndSubmitData function
+function checkAndSubmitData() {
+	const savedState = localStorage.getItem('experimentState')
+	if (savedState) {
+		const parsedState = JSON.parse(savedState)
+		if (parsedState.currentTrial > parsedState.totalTrials) {
+			// Experiment is complete, check if data was submitted
+			const dataSubmitted = localStorage.getItem('dataSubmitted')
+			if (dataSubmitted !== 'true') {
+				// Data was not submitted successfully, try to submit again
+				submitData()
+			}
+			else {
+				// Data was submitted successfully, redirect to experiment end page
+				router.push('/experiment-end')
+			}
+		}
+		else {
+			// Experiment is not complete, resume from where it left off
+			loadSavedState()
+			startTrial()
+		}
+	}
+	else {
+		// No saved state, start a new experiment
+		loadImages()
+	}
+}
+
+onMounted(() => {
+	calculateImageSize() // 添加这一行
+	window.addEventListener('resize', calculateImageSize) // 添加这一行
+	checkAndSubmitData()
+})
+
+onUnmounted(() => {
+	window.removeEventListener('resize', calculateImageSize) // 添加这一行
+})
+
+function loadImages() {
+	// 检查是否有保存的图片数据
+	const savedState = localStorage.getItem('experimentState')
+	if (savedState) {
+		const parsedState = JSON.parse(savedState)
+		allImages.value = parsedState.allImages
+		catchImages.value = parsedState.catchImages
+		currentTrial.value = parsedState.currentTrial
+		trialData.value = parsedState.trialData
+		catchTrialIndex.value = parsedState.catchTrialIndex
+		totalTrials.value = parsedState.totalTrials || 101 // 添加这一行
+	}
+	else {
+		// 如果没有保存的数据，初始化图片数组
+		for (let i = 0; i < 500; i++) {
+			allImages.value.push({ id: i, image_url: `/images/${i}.jpg` })
+		}
+		catchImages.value = [
+			{ id: 'empty', image_url: '/catch_images/empty.jpg' },
+			{ id: 'hard', image_url: '/catch_images/hard.jpg' },
+		]
+	}
+	startTrial()
 }
 </script>
 
 <style lang="less" scoped>
-.index {
+.experiment {
 	display: flex;
 	flex-direction: column;
-	height: 100%;
-	box-sizing: border-box;
-	padding: 0 18px;
-	background: #f8f8f8;
+	align-items: center;
+	padding: 20px;
 
-	.content {
-		flex: 1;
-
-		&:deep(.logo) {
-			stroke-dasharray: 600;
-			stroke-dashoffset: 600;
-			animation: offset 2s linear infinite;
-
-			@keyframes offset {
-				to {
-					stroke-dashoffset: 0;
-				}
-			}
-		}
-
-		.banner {
-			border-radius: 8px;
-
-			.img {
-				width: 100%;
-				height: 300px;
-				border-radius: 20px;
-			}
-
-			:deep(.van-swipe__indicator) {
-				width: 14px;
-				height: 6px;
-				border-radius: 4px;
-			}
-		}
-
-		// .ul {
-		//   display: flex;
-		//   overflow-x: scroll;
-		//   .li {
-		//     flex: 0 0 200px;
-		//   }
-		// }
+	h2 {
+		margin-bottom: 10px;
+		font-size: 24px;
+		color: #333;
 	}
+}
+
+.content {
+	width: 100%;
+	max-width: 800px;
+	margin-top: 20px;
+}
+
+.prompt {
+	text-align: center;
+	font-size: 20px;
+	margin-bottom: 20px;
+	color: #444;
+}
+
+.image-choice {
+	display: flex;
+	justify-content: space-around;
+	flex-wrap: wrap;
+
+	.van-image {
+		margin: 10px;
+		cursor: pointer;
+
+		&.disabled {
+			pointer-events: none;
+			opacity: 0.5;
+		}
+	}
+}
+
+.van-progress {
+	margin-top: 20px;
+	width: 100%;
+}
+
+.loading-text {
+	margin-top: 10px;
+	font-size: 16px;
+	color: #666;
 }
 </style>
