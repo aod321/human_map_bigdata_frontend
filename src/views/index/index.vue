@@ -130,8 +130,27 @@ function startTrial() {
 	}
 	else {
 		// Set up regular trial
-		const shuffled = [...allImages.value].sort(() => 0.5 - Math.random())
-		currentImages.value = shuffled.slice(0, 2)
+		if (allImages.value.length >= 2) {
+			// 不放回采样
+			const shuffled = [...allImages.value].sort(() => 0.5 - Math.random())
+			currentImages.value = shuffled.slice(0, 2)
+			// 从 allImages 中移除已使用的图片
+			allImages.value = allImages.value.filter(img => !currentImages.value.includes(img))
+		}
+		else if (allImages.value.length === 1) {
+			// 如果只剩一张图片，使用这张图片并从其他已使用的图片中随机选择一张
+			currentImages.value = [...allImages.value]
+			const usedImages = trialData.value.flatMap(trial => [trial.image1_id, trial.image2_id])
+			const randomUsedImage = usedImages[Math.floor(Math.random() * usedImages.length)]
+			currentImages.value.push({ id: randomUsedImage, image_url: `/images/${randomUsedImage}.jpg` })
+			allImages.value = []
+		}
+		else {
+			// 如果没有剩余图片，从已使用的图片中随机选择两张
+			const usedImages = trialData.value.flatMap(trial => [trial.image1_id, trial.image2_id])
+			const shuffledUsedImages = usedImages.sort(() => 0.5 - Math.random())
+			currentImages.value = shuffledUsedImages.slice(0, 2).map(id => ({ id, image_url: `/images/${id}.jpg` }))
+		}
 	}
 	startTime.value = Date.now()
 	isClicked.value = false // Reset isClicked at the start of each trial
