@@ -36,6 +36,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
+import { checkApiStatus } from '@/utils/apiCheck'
 
 const router = useRouter()
 
@@ -278,8 +279,14 @@ function checkAndSubmitData() {
 }
 
 // Modify the onMounted function
-onMounted(() => {
+onMounted(async () => {
 	if (!checkExperimentStatus()) {
+		return
+	}
+
+	const apiIsWorking = await checkApiStatus()
+	if (!apiIsWorking) {
+		router.push('/network-error')
 		return
 	}
 

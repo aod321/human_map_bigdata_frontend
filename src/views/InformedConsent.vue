@@ -16,7 +16,9 @@
 </template>
 
 <script lang="ts" setup>
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { checkApiStatus } from '@/utils/apiCheck'
 
 const router = useRouter()
 
@@ -24,6 +26,13 @@ function proceedToNextStep() {
 	localStorage.setItem('hasGivenConsent', 'true')
 	router.push('/participant-info')
 }
+
+onMounted(async () => {
+	const apiIsWorking = await checkApiStatus()
+	if (!apiIsWorking) {
+		router.push('/network-error')
+	}
+})
 </script>
 
 <style scoped>
@@ -40,13 +49,13 @@ function proceedToNextStep() {
 
 .title {
 	margin-bottom: 24px;
-	font-size: 28px;
+	font-size: 36px;
 	color: #2c3e50;
 	text-align: center;
 }
 
 .consent-content {
-	max-width: 800px;
+	max-width: 1000px;
 	width: 100%;
 	margin-bottom: 30px;
 	background-color: #ffffff;
@@ -57,7 +66,7 @@ function proceedToNextStep() {
 
 p {
 	margin-bottom: 20px;
-	font-size: 18px;
+	font-size: 22px;
 	line-height: 1.8;
 	color: #34495e;
 	text-align: justify;
@@ -66,9 +75,9 @@ p {
 .consent-button {
 	margin-top: 24px;
 	width: 100%;
-	max-width: 300px;
-	height: 48px;
-	font-size: 20px;
+	max-width: 400px;
+	height: 60px;
+	font-size: 24px;
 	border-radius: 4px;
 }
 
@@ -78,7 +87,7 @@ p {
 	}
 
 	.title {
-		font-size: 24px;
+		font-size: 28px;
 	}
 
 	.consent-content {
@@ -86,13 +95,14 @@ p {
 	}
 
 	p {
-		font-size: 16px;
+		font-size: 18px;
 		line-height: 1.6;
 	}
 
 	.consent-button {
 		max-width: 100%;
-		font-size: 18px;
+		font-size: 20px;
+		height: 48px;
 	}
 }
 </style>

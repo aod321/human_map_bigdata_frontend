@@ -11,6 +11,7 @@ import WeChatOnly from '../views/WeChatOnly.vue'
 import baseRoutes from './modules/base' // 确保正确导入
 import NProgress from '@/plugins/progress'
 import ExperimentView from '@/views/index/index.vue'
+import NetworkErrorView from '@/views/NetworkError.vue'
 
 // 批量加载路由模块
 const modules: Record<string, any> = import.meta.glob(
@@ -54,6 +55,14 @@ const routes: RouteRecordRaw[] = [
 		path: '/wechat-only',
 		name: 'WeChatOnly',
 		component: WeChatOnly,
+	},
+	{
+		path: '/network-error',
+		name: 'NetworkError',
+		component: NetworkErrorView,
+		meta: {
+			title: '网络错误',
+		},
 	},
 ]
 

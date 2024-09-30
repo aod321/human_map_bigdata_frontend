@@ -70,6 +70,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { getPreloadStatus, preloadImages } from '@/utils/preloader'
+import { checkApiStatus } from '@/utils/apiCheck'
 
 const router = useRouter()
 
@@ -104,7 +105,11 @@ function onSubmit(values: any) {
 	router.push('/instructions')
 }
 
-onMounted(() => {
+onMounted(async () => {
+	const apiIsWorking = await checkApiStatus()
+	if (!apiIsWorking) {
+		router.push('/network-error')
+	}
 	checkExperimentStatus()
 })
 

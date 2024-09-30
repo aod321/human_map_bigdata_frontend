@@ -31,6 +31,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { preloadImages, setPreloadStatus } from '@/utils/preloader'
+import { checkApiStatus } from '@/utils/apiCheck'
 
 const router = useRouter()
 const instructionImages = ref([
@@ -68,7 +69,12 @@ async function startExperiment() {
 	}
 }
 
-onMounted(() => {
+onMounted(async () => {
+	const apiIsWorking = await checkApiStatus()
+	if (!apiIsWorking) {
+		router.push('/network-error')
+	}
+
 	const participantInfo = localStorage.getItem('participantInfo')
 	if (!participantInfo) {
 		router.push({ name: 'ParticipantInfo' })
