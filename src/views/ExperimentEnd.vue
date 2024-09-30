@@ -7,7 +7,7 @@
 			<p><strong>年龄：</strong>{{ participantInfo.age }}</p>
 			<p><strong>性别：</strong>{{ participantInfo.gender }}</p>
 		</div>
-		<van-button type="primary" :disabled="isSubmitting" @click="goToThankYou">
+		<van-button type="primary" :disabled="isSubmitting" @click="goToSurvey">
 			领取被试费
 		</van-button>
 	</div>
@@ -15,10 +15,10 @@
 
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+// import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 
-const router = useRouter()
+// const router = useRouter()
 const participantInfo = ref<any>(null)
 const isSubmitting = ref(false)
 
@@ -55,7 +55,7 @@ function submitData(experimentData: any) {
 	}, 2000)
 }
 
-function goToThankYou() {
+function goToSurvey() {
 	if (isSubmitting.value) {
 		return
 	}
@@ -63,9 +63,9 @@ function goToThankYou() {
 	// 只设置一个标志表示实验已完成
 	localStorage.setItem('experimentCompleted', 'true')
 	// 显示提示信息
-	showToast('实验已结束，感谢您的参与')
-	// 重定向到"感谢"页面
-	router.push('/thank-you')
+	showToast('正在跳转到问卷星...')
+	// 跳转到问卷星链接
+	window.location.href = 'https://www.wjx.cn/vm/PKcoqGV.aspx#'
 }
 </script>
 

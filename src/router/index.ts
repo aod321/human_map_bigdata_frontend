@@ -7,6 +7,7 @@
  */
 import type { RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory } from 'vue-router'
+import WeChatOnly from '../views/WeChatOnly.vue'
 import baseRoutes from './modules/base' // 确保正确导入
 import NProgress from '@/plugins/progress'
 import { preloadImages } from '@/utils/preloader' // 假设我们将预加载函数移到了单独的文件中
@@ -30,6 +31,11 @@ const routes: RouteRecordRaw[] = [
 			title: '实验',
 		},
 	},
+	{
+		path: '/wechat-only',
+		name: 'WeChatOnly',
+		component: WeChatOnly,
+	},
 ]
 
 // 加入到路由集合中
@@ -46,6 +52,12 @@ const router = createRouter({
 
 let isPreloading = false
 
+// Add this function to check if the browser is WeChat
+function isWeChatBrowser() {
+	const ua = navigator.userAgent.toLowerCase()
+	return ua.includes('micromessenger')
+}
+
 // 创建一个新的函数来处理预加载
 async function ensurePreloading() {
 	if (!isPreloading) {
@@ -55,8 +67,6 @@ async function ensurePreloading() {
 		}
 		catch (error) {
 			console.error('预加载图片时出错:', error)
-		}
-		finally {
 			isPreloading = false
 		}
 	}
@@ -64,6 +74,12 @@ async function ensurePreloading() {
 
 router.beforeEach(async (to, from, next) => {
 	NProgress.start()
+
+	// Check if the browser is WeChat before any other checks
+	if (!isWeChatBrowser() && to.name !== 'WeChatOnly') {
+		next({ name: 'WeChatOnly' })
+		return
+	}
 
 	const savedState = localStorage.getItem('experimentState')
 	const participantInfo = localStorage.getItem('participantInfo')

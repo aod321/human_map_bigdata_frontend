@@ -41,7 +41,7 @@ const router = useRouter()
 
 const prompt = ref('请点击看起来更难导航的图片')
 const allImages = ref<{ id: number, image_url: string }[]>([])
-const currentImages = ref<{ id: number, image_url: string }[]>([])
+const currentImages = ref<{ id: number | string, image_url: string }[]>([])
 const catchImages = ref<{ id: string, image_url: string }[]>([])
 const currentTrial = ref(1)
 const trialData = ref<any[]>([])
@@ -65,6 +65,8 @@ const isClicked = ref(false)
 
 // Calculate experiment progress
 const experimentProgress = computed(() => Math.floor((currentTrial.value - 1) / totalTrials.value * 100))
+
+const catchTrialEasyIndex = ref(0) // 新增：用于存储 catch trial 中 easy 图片的索引
 
 function calculateImageSize() {
 	const screenHeight = window.innerHeight
@@ -118,6 +120,12 @@ function startTrial() {
 	if (currentTrial.value === catchTrialIndex.value) {
 		// Set up catch trial
 		currentImages.value = catchImages.value
+		// 随机决定 easy 图片的位置（0 或 1）
+		catchTrialEasyIndex.value = Math.random() < 0.5 ? 0 : 1
+		// 如果 easy 图片不在第一个位置，则交换两张图片的顺序
+		if (catchTrialEasyIndex.value === 1) {
+			[currentImages.value[0], currentImages.value[1]] = [currentImages.value[1], currentImages.value[0]]
+		}
 	}
 	else {
 		// Set up regular trial
@@ -139,6 +147,14 @@ function handleClick(imageId: number | string, index: number) {
 
 	const trialType = currentTrial.value === catchTrialIndex.value ? 'catch' : 'regular'
 
+	let catchTrialCorrect: string | null = null
+	if (trialType === 'catch') {
+		// 判断是否正确选择了 hard 图片
+		catchTrialCorrect = index !== catchTrialEasyIndex.value ? 'correct' : 'incorrect'
+		// 将 catchTrialCorrect 写入 localStorage
+		localStorage.setItem('catchTrialCorrect', catchTrialCorrect)
+	}
+
 	trialData.value.push({
 		trial_id: currentTrial.value,
 		trial_type: trialType,
@@ -148,6 +164,7 @@ function handleClick(imageId: number | string, index: number) {
 		selected_image_id: imageId,
 		reaction_time: reactionTime,
 		timestamp: endTime,
+		catch_trial_correct: catchTrialCorrect, // 新增：记录 catch trial 的正确性
 	})
 
 	currentTrial.value++
@@ -159,34 +176,63 @@ function handleClick(imageId: number | string, index: number) {
 	}
 }
 
-function submitData() {
+async function submitData() {
 	const participantInfo = JSON.parse(localStorage.getItem('participantInfo') || '{}')
+
+	// 从 localStorage 获取 catchTrialCorrect
+	const catchTrialCorrect = localStorage.getItem('catchTrialCorrect')
+
+	// 将 catch trial 正确性添加到 participantInfo 中
+	const updatedParticipantInfo = {
+		...participantInfo,
+		catchTrialCorrect,
+	}
+
 	const experimentData = {
-		participantInfo,
+		participantInfo: updatedParticipantInfo,
 		trialData: trialData.value,
 	}
 
-	// TODO: Implement logic to submit data to the server
-	console.log('Submitting data:', experimentData)
-
-	// Simulating data submission with a timeout
 	loading.value = true
 	loadingProgress.value = 0
-	const interval = setInterval(() => {
-		loadingProgress.value += 10
-		if (loadingProgress.value >= 100) {
-			clearInterval(interval)
-			loading.value = false
-			// Mark data as submitted
-			localStorage.setItem('dataSubmitted', 'true')
-			// Clear saved state after successful submission
-			localStorage.removeItem('experimentState')
-			router.push('/experiment-end')
-		}
-	}, 200)
+	try {
+		const response = await fetch('https://map.blog1.top/api/submit_data', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(experimentData),
+			mode: 'cors',
+			credentials: 'same-origin',
+		})
 
-	// Show a toast message
-	showToast('数据提交中...')
+		if (!response.ok) {
+			throw new Error('Failed to submit data')
+		}
+
+		const result = await response.json()
+		console.log('Data submitted successfully:', result)
+
+		// Mark data as submitted
+		localStorage.setItem('dataSubmitted', 'true')
+		// Clear saved state after successful submission
+		localStorage.removeItem('experimentState')
+		// Clear catchTrialCorrect from localStorage
+		localStorage.removeItem('catchTrialCorrect')
+
+		// 更新 participantInfo 以包含 catchTrialCorrect
+		localStorage.setItem('participantInfo', JSON.stringify(updatedParticipantInfo))
+
+		showToast('数据提交成功')
+		router.push('/experiment-end')
+	}
+	catch (error) {
+		console.error('Error submitting data:', error)
+		showToast('数据提交失败，请重试')
+	}
+	finally {
+		loading.value = false
+	}
 }
 
 // Modify the checkAndSubmitData function
@@ -199,6 +245,7 @@ function checkAndSubmitData() {
 			const dataSubmitted = localStorage.getItem('dataSubmitted')
 			if (dataSubmitted !== 'true') {
 				// Data was not submitted successfully, try to submit again
+				loadSavedState()
 				submitData()
 			}
 			else {
@@ -218,9 +265,22 @@ function checkAndSubmitData() {
 	}
 }
 
+// Add this new function to check if the browser is WeChat
+function isWeChatBrowser() {
+	const ua = navigator.userAgent.toLowerCase()
+	return ua.includes('micromessenger')
+}
+
+// Modify the onMounted function
 onMounted(() => {
-	calculateImageSize() // 添加这一行
-	window.addEventListener('resize', calculateImageSize) // 添加这一行
+	if (!isWeChatBrowser()) {
+		// If not in WeChat browser, redirect to an error page
+		router.push('/wechat-only')
+		return
+	}
+
+	calculateImageSize()
+	window.addEventListener('resize', calculateImageSize)
 	checkAndSubmitData()
 })
 

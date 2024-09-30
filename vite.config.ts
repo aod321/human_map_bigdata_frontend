@@ -60,6 +60,7 @@ export default defineConfig(({ command, mode }: ConfigEnv): UserConfig => {
 			// cors: true, // 允许跨域
 			host: '0.0.0.0', //
 			hmr: true,
+			// https: false, // 添加这一行
 			proxy,
 			// 设置代理，根据我们项目实际情况配置
 			// proxy: {
@@ -71,6 +72,13 @@ export default defineConfig(({ command, mode }: ConfigEnv): UserConfig => {
 			//     rewrite: (path) => path.replace('/api/', '/')
 			//   }
 			// }
+			proxy: {
+				'/api': {
+					target: 'http://82.156.143.98:8000',
+					changeOrigin: true,
+					rewrite: path => path.replace(/^\/api/, ''),
+				},
+			},
 		},
 		// 选项可以选择需要或不需要进行预编译的依赖的名称，Vite 则会根据该选项来确定是否对该依赖进行预编译。
 		optimizeDeps: {
