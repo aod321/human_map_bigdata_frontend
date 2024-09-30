@@ -72,13 +72,6 @@ export default defineConfig(({ command, mode }: ConfigEnv): UserConfig => {
 			//     rewrite: (path) => path.replace('/api/', '/')
 			//   }
 			// }
-			proxy: {
-				'/api': {
-					target: 'http://82.156.143.98:8000',
-					changeOrigin: true,
-					rewrite: path => path.replace(/^\/api/, ''),
-				},
-			},
 		},
 		// 选项可以选择需要或不需要进行预编译的依赖的名称，Vite 则会根据该选项来确定是否对该依赖进行预编译。
 		optimizeDeps: {

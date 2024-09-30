@@ -136,10 +136,27 @@ function startTrial() {
 	isClicked.value = false // Reset isClicked at the start of each trial
 }
 
+function checkExperimentStatus() {
+	const hasSeenInstructions = localStorage.getItem('hasSeenInstructions')
+	const participantInfo = localStorage.getItem('participantInfo')
+
+	if (!hasSeenInstructions || !participantInfo) {
+		showToast('实验流程异常，请重新开始实验')
+		router.push('/instructions')
+		return false
+	}
+
+	return true
+}
+
 function handleClick(imageId: number | string, index: number) {
 	if (isClicked.value) {
 		return
 	} // Prevent multiple clicks
+
+	if (!checkExperimentStatus()) {
+		return
+	}
 
 	isClicked.value = true // Set isClicked to true to prevent further clicks
 	const endTime = Date.now()
@@ -215,11 +232,6 @@ async function submitData() {
 
 		// Mark data as submitted
 		localStorage.setItem('dataSubmitted', 'true')
-		// Clear saved state after successful submission
-		localStorage.removeItem('experimentState')
-		// Clear catchTrialCorrect from localStorage
-		localStorage.removeItem('catchTrialCorrect')
-
 		// 更新 participantInfo 以包含 catchTrialCorrect
 		localStorage.setItem('participantInfo', JSON.stringify(updatedParticipantInfo))
 
@@ -265,17 +277,9 @@ function checkAndSubmitData() {
 	}
 }
 
-// Add this new function to check if the browser is WeChat
-function isWeChatBrowser() {
-	const ua = navigator.userAgent.toLowerCase()
-	return ua.includes('micromessenger')
-}
-
 // Modify the onMounted function
 onMounted(() => {
-	if (!isWeChatBrowser()) {
-		// If not in WeChat browser, redirect to an error page
-		router.push('/wechat-only')
+	if (!checkExperimentStatus()) {
 		return
 	}
 

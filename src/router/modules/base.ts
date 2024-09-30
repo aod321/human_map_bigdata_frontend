@@ -9,7 +9,7 @@ import type { RouteRecordRaw } from 'vue-router'
 
 const baseRoutes: Array<RouteRecordRaw> = [
 	{
-		path: '/',
+		path: '/participant-info',
 		name: 'ParticipantInfo',
 		component: () => import('@/views/ParticipantInfo.vue'),
 		meta: {
@@ -17,9 +17,21 @@ const baseRoutes: Array<RouteRecordRaw> = [
 		},
 	},
 	{
-		path: '/start-page',
-		name: 'StartPage',
-		component: () => import('@/views/StartPage.vue'),
+		path: '/informed-consent',
+		name: 'InformedConsent',
+		component: () => import('@/views/InformedConsent.vue'),
+		meta: {
+			title: '知情同意',
+		},
+	},
+	{
+		path: '/',
+		redirect: '/informed-consent',
+	},
+	{
+		path: '/instructions',
+		name: 'Instructions',
+		component: () => import('@/views/Instructions.vue'),
 		meta: {
 			title: '实验指导语',
 		},

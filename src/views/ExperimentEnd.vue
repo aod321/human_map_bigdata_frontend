@@ -15,44 +15,30 @@
 
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue'
-// import { useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 
-// const router = useRouter()
+const router = useRouter()
 const participantInfo = ref<any>(null)
 const isSubmitting = ref(false)
 
 onMounted(() => {
+	checkExperimentCompletion()
+})
+
+function checkExperimentCompletion() {
 	const storedInfo = localStorage.getItem('participantInfo')
+	const experimentState = localStorage.getItem('experimentState')
+	const hasSeenInstructions = localStorage.getItem('hasSeenInstructions')
 	if (storedInfo) {
 		participantInfo.value = JSON.parse(storedInfo)
 	}
-	checkAndSubmitData()
-})
-
-function checkAndSubmitData() {
-	const dataSubmitted = localStorage.getItem('dataSubmitted')
-	const experimentState = localStorage.getItem('experimentState')
-
-	if (dataSubmitted !== 'true' && experimentState) {
-		submitData(JSON.parse(experimentState))
+	if (!storedInfo || !experimentState || hasSeenInstructions !== 'true') {
+		showToast('实验流程未完成')
+		// clean all local storage
+		localStorage.clear()
+		router.push('/instructions')
 	}
-}
-
-function submitData(experimentData: any) {
-	isSubmitting.value = true
-	showToast('正在提交数据...')
-
-	// TODO: 实现向服务器提交数据的逻辑
-	console.log('Submitting data:', experimentData)
-
-	// 模拟数据提交
-	setTimeout(() => {
-		localStorage.setItem('dataSubmitted', 'true')
-		// 不再删除 experimentState，保留实验状态
-		isSubmitting.value = false
-		showToast('数据提交成功')
-	}, 2000)
 }
 
 function goToSurvey() {
@@ -76,24 +62,31 @@ function goToSurvey() {
 	justify-content: center;
 	align-items: center;
 	height: 100vh;
-	font-size: 18px;
+	font-size: 24px;
 	text-align: center;
 }
 
 h1 {
-	font-size: 24px;
-	margin-bottom: 20px;
+	font-size: 36px;
+	margin-bottom: 30px;
 }
 
 .participant-info {
-	margin: 20px 0;
-	padding: 20px;
+	margin: 30px 0;
+	padding: 30px;
 	border: 1px solid #ccc;
 	border-radius: 8px;
 	background-color: #f9f9f9;
 }
 
+.participant-info p {
+	font-size: 24px;
+	margin-bottom: 15px;
+}
+
 .van-button {
-	margin-top: 20px;
+	margin-top: 30px;
+	font-size: 24px;
+	padding: 15px 30px;
 }
 </style>

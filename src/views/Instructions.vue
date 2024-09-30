@@ -1,13 +1,13 @@
 <template>
-	<div class="start-page">
+	<div class="instructions">
 		<h1 class="title">
 			实验指导
 		</h1>
 		<div class="instruction-content">
-			<p>亲爱的参与者，欢迎您参加我们的实验！在接下来的任务中，您将看到两张不同的地图。我们希望您能想象自己在这些地图中进行导航，并判断哪张地图更容易完成导航任务。</p>
-			<p>您的任务是：从展示的两张地图中，选择一张您认为<strong class="highlight">更容易</strong>进行导航的地图。</p>
+			<p>亲爱的参与者，欢迎您参加我们的实验！在接下来的任务中，您将看到两张不同的地图。我们希望您能想象自己以<strong class="highlight">第一人称视角</strong>在这些地图中进行导航，并判断哪张地图更难完成导航任务。</p>
+			<p>您的任务是：从展示的两张地图中，选择一张您认为<strong class="highlight">更难</strong>进行导航的地图。</p>
 			<p>在本实验中，我们定义导航任务的难度为：在地图上选择任意两个点作为起点和终点，从起点到达终点的难易程度。</p>
-			<p>举个例子：屏幕上会显示上下两张地图。如果您觉得上面的地图更<strong class="highlight">容易</strong>导航，就请点击上面的图片；如果您认为下面的地图更<strong class="highlight">容易</strong>导航，则点击下面的图片。</p>
+			<p>举个例子：屏幕上会显示上下两张地图。如果您觉得上面的地图更<strong class="highlight">难</strong>导航，就请点击上面的图片；如果您认为下面的地图更<strong class="highlight">难</strong>导航，则点击下面的图片。</p>
 			<div class="image-container">
 				<img v-for="(image, index) in instructionImages" :key="index" :src="image" :alt="`示例图片 ${index + 1}`" class="instruction-image">
 			</div>
@@ -15,45 +15,72 @@
 				如果您有任何疑问，请随时向我们的工作人员寻求帮助，我们很乐意为您解答。
 			</p>
 		</div>
-		<van-button type="primary" size="large" :disabled="!canStartExperiment" class="start-button" @click="startExperiment">
-			开始实验
+		<van-button type="primary" size="large" :disabled="isPreloading" class="instructions-button" @click="startExperiment">
+			{{ isPreloading ? '资源加载中...' : '开始实验' }}
 		</van-button>
+		<div v-if="isPreloading" class="preload-status">
+			<van-progress :percentage="loadingProgress" :stroke-width="8" />
+			<p class="loading-text">
+				{{ loadingText }}
+			</p>
+		</div>
 	</div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { preloadImages, setPreloadStatus } from '@/utils/preloader'
 
 const router = useRouter()
-const canStartExperiment = ref(false)
 const instructionImages = ref([
 	'/instruction/empty.jpg',
 	'/instruction/hard.jpg',
 ])
 
-function startExperiment() {
-	if (canStartExperiment.value) {
+const isPreloading = ref(false)
+const loadingProgress = ref(0)
+
+const loadingText = computed(() => {
+	if (loadingProgress.value < 100) {
+		return `正在加载资源...${loadingProgress.value}%`
+	}
+	return '加载完成，准备开始实验'
+})
+
+async function startExperiment() {
+	if (isPreloading.value) {
+		return
+	}
+
+	isPreloading.value = true
+	try {
+		await preloadImages((progress) => {
+			loadingProgress.value = progress
+		})
 		localStorage.setItem('hasSeenInstructions', 'true')
-		router.replace({ name: 'Experiment' })
+		setPreloadStatus(true)
+		router.push({ name: 'Experiment' })
+	}
+	catch (error) {
+		console.error('预加载图片时出错:', error)
+		isPreloading.value = false
 	}
 }
 
 onMounted(() => {
 	const participantInfo = localStorage.getItem('participantInfo')
 	if (!participantInfo) {
-		// 如果没有参与者信息，重定向到参与者信息页面
-		router.replace({ name: 'ParticipantInfo' })
+		router.push({ name: 'ParticipantInfo' })
 	}
-	else {
-		// 如果有参与者信息，允许开始实验
-		canStartExperiment.value = true
+	else if (localStorage.getItem('hasSeenInstructions') === 'true') {
+		router.push({ name: 'Experiment' })
 	}
 })
 </script>
 
 <style scoped>
-.start-page {
+.instructions {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -125,7 +152,7 @@ p {
 	font-size: 16px;
 }
 
-.start-button {
+.instructions-button {
 	margin-top: 24px;
 	width: 100%;
 	max-width: 300px;
@@ -135,7 +162,7 @@ p {
 }
 
 @media (max-width: 768px) {
-	.start-page {
+	.instructions {
 		padding: 24px 16px;
 	}
 
@@ -156,7 +183,7 @@ p {
 		max-width: 70%;
 	}
 
-	.start-button {
+	.instructions-button {
 		max-width: 100%;
 		font-size: 18px;
 	}

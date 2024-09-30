@@ -10,7 +10,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import WeChatOnly from '../views/WeChatOnly.vue'
 import baseRoutes from './modules/base' // 确保正确导入
 import NProgress from '@/plugins/progress'
-import { preloadImages } from '@/utils/preloader' // 假设我们将预加载函数移到了单独的文件中
 import ExperimentView from '@/views/index/index.vue'
 
 // 批量加载路由模块
@@ -23,6 +22,26 @@ const modules: Record<string, any> = import.meta.glob(
 )
 const routes: RouteRecordRaw[] = [
 	...baseRoutes,
+	{
+		path: '/',
+		redirect: '/participant-info',
+	},
+	{
+		path: '/participant-info',
+		name: 'ParticipantInfo',
+		component: () => import('@/views/ParticipantInfo.vue'),
+		meta: {
+			title: '参与者信息',
+		},
+	},
+	{
+		path: '/instructions',
+		name: 'Instructions',
+		component: () => import('@/views/Instructions.vue'),
+		meta: {
+			title: '实验指导',
+		},
+	},
 	{
 		path: '/experiment',
 		name: 'Experiment',
@@ -50,81 +69,64 @@ const router = createRouter({
 	routes,
 })
 
-let isPreloading = false
-
-// Add this function to check if the browser is WeChat
-function isWeChatBrowser() {
-	const ua = navigator.userAgent.toLowerCase()
-	return ua.includes('micromessenger')
-}
-
-// 创建一个新的函数来处理预加载
-async function ensurePreloading() {
-	if (!isPreloading) {
-		isPreloading = true
-		try {
-			await preloadImages()
-		}
-		catch (error) {
-			console.error('预加载图片时出错:', error)
-			isPreloading = false
-		}
-	}
-}
+// // Add this function to check if the browser is WeChat
+// function isWeChatBrowser() {
+// 	const ua = navigator.userAgent.toLowerCase()
+// 	return ua.includes('micromessenger')
+// }
 
 router.beforeEach(async (to, from, next) => {
 	NProgress.start()
 
-	// Check if the browser is WeChat before any other checks
-	if (!isWeChatBrowser() && to.name !== 'WeChatOnly') {
-		next({ name: 'WeChatOnly' })
-		return
-	}
+	// // Check if the browser is WeChat before any other checks
+	// if (!isWeChatBrowser() && to.name !== 'WeChatOnly') {
+	// 	next({ name: 'WeChatOnly' })
+	// 	return
+	// }
 
-	const savedState = localStorage.getItem('experimentState')
+	const hasGivenConsent = localStorage.getItem('hasGivenConsent')
 	const participantInfo = localStorage.getItem('participantInfo')
+	const hasSeenInstructions = localStorage.getItem('hasSeenInstructions')
 	const dataSubmitted = localStorage.getItem('dataSubmitted')
 
-	if (to.name === 'ParticipantInfo') {
+	if (to.name === 'InformedConsent') {
 		if (dataSubmitted === 'true') {
-			// 如果实验已结束且数据已提交，重定向到实验结束页面
 			next({ name: 'ExperimentEnd' })
 		}
-		else if (savedState) {
-			const parsedState = JSON.parse(savedState)
-			if (parsedState.currentTrial > 101) {
-				// 如果实验已结束但数据未提交，重定向到实验页面
-				next({ name: 'Experiment' })
-			}
-			else {
-				await ensurePreloading()
-				next()
-			}
-		}
 		else {
-			await ensurePreloading()
 			next()
 		}
 	}
-	else if (to.name === 'StartPage') {
+	else if (to.name === 'ParticipantInfo') {
+		if (!hasGivenConsent) {
+			next({ name: 'InformedConsent' })
+		}
+		else if (dataSubmitted === 'true') {
+			next({ name: 'ExperimentEnd' })
+		}
+		else {
+			next()
+		}
+	}
+	else if (to.name === 'Instructions') {
 		if (!participantInfo) {
 			next({ name: 'ParticipantInfo' })
 		}
+		else if (dataSubmitted === 'true') {
+			next({ name: 'ExperimentEnd' })
+		}
 		else {
-			await ensurePreloading()
 			next()
 		}
 	}
 	else if (to.name === 'Experiment') {
 		if (!participantInfo) {
 			next({ name: 'ParticipantInfo' })
-			await ensurePreloading()
 		}
-		else if (!localStorage.getItem('hasSeenInstructions')) {
-			next({ name: 'StartPage' })
+		else if (!hasSeenInstructions) {
+			next({ name: 'Instructions' })
 		}
 		else {
-			await ensurePreloading()
 			next()
 		}
 	}

@@ -69,6 +69,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
+import { getPreloadStatus, preloadImages } from '@/utils/preloader'
 
 const router = useRouter()
 
@@ -76,43 +77,6 @@ const name = ref('')
 const age = ref('')
 const gender = ref('男')
 const phone = ref('')
-
-function validateAge(val: string) {
-	const ageNum = Number.parseInt(val)
-	return !Number.isNaN(ageNum) && ageNum > 0 && ageNum < 120
-}
-
-function onSubmit(values: any) {
-	console.log('form values:', values)
-	// TODO: 保存参与者信息到本地存储或发送到服务器
-	localStorage.setItem('participantInfo', JSON.stringify(values))
-	// 提交后跳转到实验指导页
-	router.push('/start-page')
-}
-
-onMounted(() => {
-	checkExperimentStatus()
-})
-
-function checkExperimentStatus() {
-	const dataSubmitted = localStorage.getItem('dataSubmitted')
-	if (dataSubmitted === 'true') {
-		showToast('实验已结束')
-		router.push('/thank-you')
-	}
-	else {
-		const participantInfo = localStorage.getItem('participantInfo')
-		if (participantInfo) {
-			// 如果已经填写过信息，加载参与者信息并开始预加载资源
-			const parsedInfo = JSON.parse(participantInfo)
-			name.value = parsedInfo.name
-			age.value = parsedInfo.age
-			gender.value = parsedInfo.gender
-			phone.value = parsedInfo.phone
-			preloadImages()
-		}
-	}
-}
 
 // 添加预加载相关的状态
 const isPreloading = ref(false)
@@ -127,43 +91,47 @@ const loadingText = computed(() => {
 	return '加载完成，准备开始实验'
 })
 
-// 预加载图片的函数
-function preloadImages() {
-	isPreloading.value = true
-	const totalImages = 502 // 500 regular images + 2 catch images
-	let loadedCount = 0
+function validateAge(val: string) {
+	const ageNum = Number.parseInt(val)
+	return !Number.isNaN(ageNum) && ageNum > 0 && ageNum < 120
+}
 
-	const updateProgress = () => {
-		loadedCount++
-		loadingProgress.value = Math.floor((loadedCount / totalImages) * 100)
-		if (loadedCount === totalImages) {
-			isPreloading.value = false
-			router.push('/experiment')
+function onSubmit(values: any) {
+	console.log('form values:', values)
+	// TODO: 保存参与者信息到本地存储或发送到服务器
+	localStorage.setItem('participantInfo', JSON.stringify(values))
+	// 提交后跳转到实验指导页
+	router.push('/instructions')
+}
+
+onMounted(() => {
+	checkExperimentStatus()
+})
+
+function checkExperimentStatus() {
+	const dataSubmitted = localStorage.getItem('dataSubmitted')
+	if (dataSubmitted === 'true') {
+		showToast('实验已结束')
+		router.push('/thank-you')
+	}
+	else {
+		const participantInfo = localStorage.getItem('participantInfo')
+		if (participantInfo && JSON.parse(participantInfo)?.name) {
+			// 如果已经填写过信息，加载参与者信息, 预加载资源, 跳转到指导语页面
+			const parsedInfo = JSON.parse(participantInfo)
+			name.value = parsedInfo.name
+			age.value = parsedInfo.age
+			gender.value = parsedInfo.gender
+			phone.value = parsedInfo.phone
+			// 如果预加载未完成, 则预加载资源
+			if (!getPreloadStatus().value) {
+				preloadImages((progress) => {
+					loadingProgress.value = progress
+				})
+			}
+			router.push('/instructions')
 		}
 	}
-
-	// Preload regular images
-	for (let i = 0; i < 500; i++) {
-		const img = new Image()
-		img.src = `/images/${i}.jpg`
-		img.onload = updateProgress
-		img.onerror = () => {
-			console.error(`Failed to load image: /images/${i}.jpg`)
-			updateProgress()
-		}
-	}
-
-	// Preload catch trial images
-	const catchImageUrls = ['/catch_images/empty.jpg', '/catch_images/hard.jpg']
-	catchImageUrls.forEach((url) => {
-		const img = new Image()
-		img.src = url
-		img.onload = updateProgress
-		img.onerror = () => {
-			console.error(`Failed to load catch image: ${url}`)
-			updateProgress()
-		}
-	})
 }
 
 function submitInfo() {
@@ -185,7 +153,7 @@ function submitInfo() {
 		return
 	}
 
-	// 保存参与者信息
+	// Save participant info
 	const participantInfo = {
 		name: name.value,
 		age: age.value,
@@ -194,8 +162,8 @@ function submitInfo() {
 	}
 	localStorage.setItem('participantInfo', JSON.stringify(participantInfo))
 
-	// 开始预加载图片
-	preloadImages()
+	// Redirect to Instructions page
+	router.push('/instructions')
 }
 </script>
 
