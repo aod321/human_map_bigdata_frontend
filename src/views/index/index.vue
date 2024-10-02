@@ -1,10 +1,3 @@
-<!--
- * @Author: DaiYu
- * @Date: 2022-02-18 17:30:23
- * @LastEditors: DaiYu
- * @LastEditTime: 2022-11-28 09:23:21
- * @FilePath: \src\views\index\index.vue
--->
 <template>
 	<div class="experiment">
 		<h2>Trial {{ currentTrial }} / {{ totalTrials }}</h2>
@@ -53,9 +46,10 @@ const maxImageWidth = 400
 const imageRadius = ref('12px')
 
 const startTime = ref(0)
+const trialStartDateTime = ref('') // 记录每个trial的开始时间（中国时区）
 
-const totalTrials = ref(101) // 100 regular trials + 1 catch trial
-const catchTrialIndex = ref(Math.floor(Math.random() * 100) + 1) // Random position for catch trial
+const totalTrials = ref(105) // 100 regular trials + 5 catch trials
+const catchTrialIndices = ref<number[]>([]) // Array to store the indices of catch trials
 
 // Add these lines to define loading and loadingProgress
 const loading = ref(false)
@@ -67,7 +61,14 @@ const isClicked = ref(false)
 // Calculate experiment progress
 const experimentProgress = computed(() => Math.floor((currentTrial.value - 1) / totalTrials.value * 100))
 
-const catchTrialEasyIndex = ref(0) // 新增：用于存储 catch trial 中 easy 图片的索引
+const catchTrialEasyIndex = ref(0) // 用于存储 catch trial 中 easy 图片的索引
+
+// 记录实验开始时间（中国时区和时间戳）
+const experimentStartTime = ref(new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }))
+const experimentStartTimestamp = ref(Date.now())
+
+// Add a variable to track catch trial results
+const catchTrialResults = ref<string[]>([])
 
 function calculateImageSize() {
 	const screenHeight = window.innerHeight
@@ -92,8 +93,11 @@ function loadSavedState() {
 		currentTrial.value = parsedState.currentTrial
 		trialData.value = parsedState.trialData
 		allImages.value = parsedState.allImages
-		catchTrialIndex.value = parsedState.catchTrialIndex
+		catchTrialIndices.value = parsedState.catchTrialIndices
 		catchImages.value = parsedState.catchImages
+		experimentStartTime.value = parsedState.experimentStartTime || new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+		experimentStartTimestamp.value = parsedState.experimentStartTimestamp || Date.now()
+		catchTrialResults.value = parsedState.catchTrialResults || []
 	}
 }
 
@@ -103,14 +107,17 @@ function saveState() {
 		currentTrial: currentTrial.value,
 		trialData: trialData.value,
 		allImages: allImages.value,
-		catchTrialIndex: catchTrialIndex.value,
+		catchTrialIndices: catchTrialIndices.value,
 		catchImages: catchImages.value,
+		experimentStartTime: experimentStartTime.value,
+		experimentStartTimestamp: experimentStartTimestamp.value,
+		catchTrialResults: catchTrialResults.value,
 	}
 	localStorage.setItem('experimentState', JSON.stringify(state))
 }
 
 // Watch for changes in currentTrial and trialData
-watch([currentTrial, trialData, totalTrials], saveState, { deep: true })
+watch([currentTrial, trialData, totalTrials, catchTrialResults], saveState, { deep: true })
 
 function startTrial() {
 	if (currentTrial.value > totalTrials.value) {
@@ -118,9 +125,13 @@ function startTrial() {
 		return
 	}
 
-	if (currentTrial.value === catchTrialIndex.value) {
+	trialStartDateTime.value = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) // 记录每个trial的开始时间（中国时区）
+
+	if (catchTrialIndices.value.includes(currentTrial.value)) {
 		// Set up catch trial
-		currentImages.value = catchImages.value
+		const easyImage = catchImages.value.find(img => img.id === 'empty')!
+		const hardImage = allImages.value[Math.floor(Math.random() * allImages.value.length)]
+		currentImages.value = [easyImage, hardImage]
 		// 随机决定 easy 图片的位置（0 或 1）
 		catchTrialEasyIndex.value = Math.random() < 0.5 ? 0 : 1
 		// 如果 easy 图片不在第一个位置，则交换两张图片的顺序
@@ -142,14 +153,14 @@ function startTrial() {
 			currentImages.value = [...allImages.value]
 			const usedImages = trialData.value.flatMap(trial => [trial.image1_id, trial.image2_id])
 			const randomUsedImage = usedImages[Math.floor(Math.random() * usedImages.length)]
-			currentImages.value.push({ id: randomUsedImage, image_url: `/images/${randomUsedImage}.jpg` })
+			currentImages.value.push({ id: randomUsedImage, image_url: `/images/${randomUsedImage.toString().padStart(5, '0')}.jpg` })
 			allImages.value = []
 		}
 		else {
 			// 如果没有剩余图片，从已使用的图片中随机选择两张
 			const usedImages = trialData.value.flatMap(trial => [trial.image1_id, trial.image2_id])
 			const shuffledUsedImages = usedImages.sort(() => 0.5 - Math.random())
-			currentImages.value = shuffledUsedImages.slice(0, 2).map(id => ({ id, image_url: `/images/${id}.jpg` }))
+			currentImages.value = shuffledUsedImages.slice(0, 2).map(id => ({ id, image_url: `/images/${id.toString().padStart(5, '0')}.jpg` }))
 		}
 	}
 	startTime.value = Date.now()
@@ -181,15 +192,15 @@ function handleClick(imageId: number | string, index: number) {
 	isClicked.value = true // Set isClicked to true to prevent further clicks
 	const endTime = Date.now()
 	const reactionTime = endTime - startTime.value
+	const trialEndDateTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) // 记录每个trial的结束时间（中国时区）
 
-	const trialType = currentTrial.value === catchTrialIndex.value ? 'catch' : 'regular'
+	const trialType = catchTrialIndices.value.includes(currentTrial.value) ? 'catch' : 'regular'
 
 	let catchTrialCorrect: string | null = null
 	if (trialType === 'catch') {
 		// 判断是否正确选择了 hard 图片
-		catchTrialCorrect = index !== catchTrialEasyIndex.value ? 'correct' : 'incorrect'
-		// 将 catchTrialCorrect 写入 localStorage
-		localStorage.setItem('catchTrialCorrect', catchTrialCorrect)
+		catchTrialCorrect = index !== catchTrialEasyIndex.value ? 'true' : 'false'
+		catchTrialResults.value.push(catchTrialCorrect)
 	}
 
 	trialData.value.push({
@@ -201,7 +212,9 @@ function handleClick(imageId: number | string, index: number) {
 		selected_image_id: imageId,
 		reaction_time: reactionTime,
 		timestamp: endTime,
-		catch_trial_correct: catchTrialCorrect, // 新增：记录 catch trial 的正确性
+		catch_trial_correct: catchTrialCorrect,
+		trial_start_datetime: trialStartDateTime.value, // 记录每个trial的开始时间（中国时区）
+		trial_end_datetime: trialEndDateTime, // 记录每个trial的结束时间（中国时区）
 	})
 
 	currentTrial.value++
@@ -216,13 +229,20 @@ function handleClick(imageId: number | string, index: number) {
 async function submitData() {
 	const participantInfo = JSON.parse(localStorage.getItem('participantInfo') || '{}')
 
-	// 从 localStorage 获取 catchTrialCorrect
-	const catchTrialCorrect = localStorage.getItem('catchTrialCorrect')
+	const experimentEndTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+	const experimentEndTimestamp = Date.now()
+	const experimentDuration = experimentEndTimestamp - experimentStartTimestamp.value
+
+	// 判断catch trial是否全部正确
+	const allCatchTrialsCorrect = catchTrialResults.value.every(result => result === 'true')
 
 	// 将 catch trial 正确性添加到 participantInfo 中
 	const updatedParticipantInfo = {
 		...participantInfo,
-		catchTrialCorrect,
+		catchTrialCorrect: allCatchTrialsCorrect.toString(),
+		experimentStartDateTime: experimentStartTime.value, // 记录实验开始时间（中国时区）
+		experimentEndDateTime: experimentEndTime, // 记录实验结束时间（中国时区）
+		experimentDuration, // 记录实验总时长（毫秒）
 	}
 
 	const experimentData = {
@@ -327,18 +347,29 @@ function loadImages() {
 		catchImages.value = parsedState.catchImages
 		currentTrial.value = parsedState.currentTrial
 		trialData.value = parsedState.trialData
-		catchTrialIndex.value = parsedState.catchTrialIndex
-		totalTrials.value = parsedState.totalTrials || 101 // 添加这一行
+		catchTrialIndices.value = parsedState.catchTrialIndices
+		totalTrials.value = parsedState.totalTrials || 105 // 修改为105
+		experimentStartTime.value = parsedState.experimentStartTime || new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+		experimentStartTimestamp.value = parsedState.experimentStartTimestamp || Date.now()
+		catchTrialResults.value = parsedState.catchTrialResults || []
 	}
 	else {
 		// 如果没有保存的数据，初始化图片数组
 		for (let i = 0; i < 500; i++) {
-			allImages.value.push({ id: i, image_url: `/images/${i}.jpg` })
+			allImages.value.push({ id: i, image_url: `/images/${i.toString().padStart(5, '0')}.jpg` })
 		}
 		catchImages.value = [
 			{ id: 'empty', image_url: '/catch_images/empty.jpg' },
-			{ id: 'hard', image_url: '/catch_images/hard.jpg' },
 		]
+		// 随机生成5个catch trial的索引
+		while (catchTrialIndices.value.length < 5) {
+			const randomIndex = Math.floor(Math.random() * 100) + 1
+			if (!catchTrialIndices.value.includes(randomIndex)) {
+				catchTrialIndices.value.push(randomIndex)
+			}
+		}
+		experimentStartTime.value = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+		experimentStartTimestamp.value = Date.now()
 	}
 	startTrial()
 }

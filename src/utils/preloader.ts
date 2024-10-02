@@ -23,7 +23,7 @@ export function preloadImages(progressCallback: (_progress: number) => void): Pr
 
 		for (let i = 0; i < 500; i++) {
 			const img = new Image()
-			img.src = `/images/${i}.jpg`
+			img.src = `/images/${i.toString().padStart(5, '0')}.jpg`
 			img.onload = img.onerror = updateProgress
 		}
 
