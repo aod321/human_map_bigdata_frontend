@@ -4,10 +4,14 @@
 			知情同意书
 		</h1>
 		<div class="consent-content">
-			<p>欢迎参与心理学实验，本实验旨在研究影响人类导航难度判断的心理因素，我们将收集您的姓名、性别、年龄和联系方式，以便后续数据分析和被试费发放的资质验证。所有数据将严格保密，仅用于学术研究，不会与第三方共享。</p>
+			<p>您好，我们是来自清华大学心理与认知科学系的研究团队，欢迎您参加我们的心理学实验。本实验旨在研究影响人类导航难度判断的心理因素。我们将收集您的性别、年龄和手机号，以便后续数据分析和被试费发放的资质验证。其中，<strong class="highlight">您的手机号仅用于被试费发放审核</strong>，不做其他用途。所有数据将严格保密，仅用于学术研究，不会与第三方共享。</p>
 			<p>请注意，您的参与是完全自愿的。您有权在任何时候退出实验，而不会受到任何形式的惩罚或损失。</p>
-			<p>如对实验流程有疑问和建议，欢迎联系研究者: wwd22@tsinghua.mails.edu.cn</p>
-			<p>点击下一步，表示您已知情同意，自愿参与后续研究</p>
+			<p>
+				如对实验流程有疑问和建议，欢迎联系我们:<br>
+				<a href="mailto:wwd22@mails.tsinghua.edu.cn">wwd22@mails.tsinghua.edu.cn</a><br>
+				<a href="mailto:z-yin21@mails.tsinghua.edu.cn">z-yin21@mails.tsinghua.edu.cn</a>
+			</p>
+			<p>点击下一步，表示您已知情同意，自愿参与后续研究。</p>
 		</div>
 		<van-button type="primary" size="large" class="consent-button" @click="proceedToNextStep">
 			下一步
@@ -70,6 +74,10 @@ p {
 	line-height: 1.8;
 	color: #34495e;
 	text-align: justify;
+}
+
+.highlight {
+	color: #3498db;
 }
 
 .consent-button {

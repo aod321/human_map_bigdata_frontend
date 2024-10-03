@@ -7,7 +7,7 @@
 			<p>亲爱的参与者，欢迎您参加我们的实验！在接下来的任务中，您将看到两张不同的地图。我们希望您能想象自己以<strong class="highlight">第一人称视角</strong>在这些地图中实际行走(下文简称为导航)，并判断哪张地图更难完成这个导航任务。</p>
 			<p>您的任务是：从展示的两张地图中，选择一张您认为<strong class="highlight">更难</strong>进行导航的地图。</p>
 			<p>在本实验中，我们定义导航任务的难度为：在地图上<strong class="highlight">任选两个点</strong>作为<strong class="highlight">起点</strong>和<strong class="highlight">终点</strong>，想象以第一人称视角从起点走到终点的难易程度。</p>
-			<p>举个例子：屏幕上会显示上下两张地图。如果您觉得上面的地图更<strong class="highlight">难</strong>导航，就请点击上面的图片；如果您认为下面的地图更<strong class="highlight">难</strong>导航，则点击下面的图片。</p>
+			<p>举个例子：屏幕上会显示上下两张地图。如果您觉得上面的地图<strong class="highlight">更难</strong>导航，就请点击上面的图片；如果您认为下面的地图<strong class="highlight">更难</strong>导航，则点击下面的图片。</p>
 			<div class="image-container">
 				<img v-for="(image, index) in instructionImages" :key="index" :src="image" :alt="`示例图片 ${index + 1}`" class="instruction-image">
 			</div>

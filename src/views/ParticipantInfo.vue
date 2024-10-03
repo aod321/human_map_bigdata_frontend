@@ -7,13 +7,6 @@
 			<van-form @submit="onSubmit">
 				<van-cell-group inset>
 					<van-field
-						v-model="name"
-						name="name"
-						label="名字"
-						placeholder="请输入您的名字"
-						:rules="[{ required: true, message: '请填写名字' }]"
-					/>
-					<van-field
 						v-model="age"
 						name="age"
 						label="年龄"
@@ -74,7 +67,6 @@ import { checkApiStatus } from '@/utils/apiCheck'
 
 const router = useRouter()
 
-const name = ref('')
 const age = ref('')
 const gender = ref('男')
 const phone = ref('')
@@ -100,7 +92,7 @@ function validateAge(val: string) {
 function onSubmit(values: any) {
 	console.log('form values:', values)
 	// TODO: 保存参与者信息到本地存储或发送到服务器
-	localStorage.setItem('participantInfo', JSON.stringify(values))
+	localStorage.setItem('participantInfo', JSON.stringify({ ...values, name: '匿名' }))
 	// 提交后跳转到实验指导页
 	router.push('/instructions')
 }
@@ -121,10 +113,9 @@ function checkExperimentStatus() {
 	}
 	else {
 		const participantInfo = localStorage.getItem('participantInfo')
-		if (participantInfo && JSON.parse(participantInfo)?.name) {
+		if (participantInfo && JSON.parse(participantInfo)?.age) {
 			// 如果已经填写过信息，加载参与者信息, 预加载资源, 跳转到指导语页面
 			const parsedInfo = JSON.parse(participantInfo)
-			name.value = parsedInfo.name
 			age.value = parsedInfo.age
 			gender.value = parsedInfo.gender
 			phone.value = parsedInfo.phone
@@ -141,7 +132,7 @@ function checkExperimentStatus() {
 
 function submitInfo() {
 	// 验证表单
-	if (!name.value || !age.value || !gender.value || !phone.value) {
+	if (!age.value || !gender.value || !phone.value) {
 		showToast('请填写所有必填信息')
 		return
 	}
@@ -160,7 +151,7 @@ function submitInfo() {
 
 	// Save participant info
 	const participantInfo = {
-		name: name.value,
+		name: '匿名',
 		age: age.value,
 		gender: gender.value,
 		phone: phone.value,

@@ -5,7 +5,7 @@
 		<van-row class="content">
 			<van-col span="24">
 				<h1 class="prompt">
-					<van-highlight :keywords="['更难']" :source-string="prompt" />
+					请点击看起来<span class="highlight-text">更难</span>导航的图片
 				</h1>
 			</van-col>
 			<van-col span="24" class="image-choice">
@@ -33,7 +33,6 @@ import { checkApiStatus } from '@/utils/apiCheck'
 
 const router = useRouter()
 
-const prompt = ref('请点击看起来更难导航的图片')
 const allImages = ref<{ id: number, image_url: string }[]>([])
 const currentImages = ref<{ id: number | string, image_url: string }[]>([])
 const catchImages = ref<{ id: string, image_url: string }[]>([])
@@ -64,7 +63,7 @@ const experimentProgress = computed(() => Math.floor((currentTrial.value - 1) / 
 const catchTrialEasyIndex = ref(0) // 用于存储 catch trial 中 easy 图片的索引
 
 // 记录实验开始时间（中国时区和时间戳）
-const experimentStartTime = ref(new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }))
+const experimentStartTime = ref(new Date().toLocaleString('zh-CN', { participantInfo: 'Asia/Shanghai' }))
 const experimentStartTimestamp = ref(Date.now())
 
 // Add a variable to track catch trial results
@@ -427,5 +426,11 @@ function loadImages() {
 	margin-top: 10px;
 	font-size: 16px;
 	color: #666;
+}
+
+.highlight-text {
+	font-size: 30px;
+	font-weight: bold;
+	color: #1989fa;
 }
 </style>

@@ -3,9 +3,9 @@
 		<h1>实验结束</h1>
 		<p>感谢您的参与！</p>
 		<div v-if="participantInfo" class="participant-info">
-			<p><strong>姓名：</strong>{{ participantInfo.name }}</p>
 			<p><strong>年龄：</strong>{{ participantInfo.age }}</p>
 			<p><strong>性别：</strong>{{ participantInfo.gender }}</p>
+			<p><strong>实验总时长：</strong>{{ formatDuration(participantInfo.experimentDuration) }}</p>
 		</div>
 		<van-button type="primary" :disabled="isSubmitting" @click="goToSurvey">
 			领取被试费
@@ -52,6 +52,12 @@ function goToSurvey() {
 	showToast('正在跳转到问卷星...')
 	// 跳转到问卷星链接
 	window.location.href = 'https://www.wjx.cn/vm/PKcoqGV.aspx#'
+}
+
+function formatDuration(duration: number): string {
+	const minutes = Math.floor(duration / 60000)
+	const seconds = Math.floor((duration % 60000) / 1000)
+	return `${minutes}分${seconds}秒`
 }
 </script>
 
