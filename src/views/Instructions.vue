@@ -35,8 +35,8 @@ import { checkApiStatus } from '@/utils/apiCheck'
 
 const router = useRouter()
 const instructionImages = ref([
-	'/instruction/empty.jpg',
-	'/instruction/hard.jpg',
+	'https://image.blog1.top/intro_empty.jpg',
+	'https://image.blog1.top/intro_hard.jpg',
 ])
 
 const isPreloading = ref(false)

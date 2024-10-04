@@ -51,7 +51,7 @@ function goToSurvey() {
 	// 显示提示信息
 	showToast('正在跳转到问卷星...')
 	// 跳转到问卷星链接
-	window.location.href = 'https://www.wjx.cn/vm/PKcoqGV.aspx#'
+	window.location.href = 'https://www.wjx.cn/vm/hjEA9e3.aspx'
 }
 
 function formatDuration(duration: number): string {

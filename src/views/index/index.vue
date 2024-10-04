@@ -152,14 +152,14 @@ function startTrial() {
 			currentImages.value = [...allImages.value]
 			const usedImages = trialData.value.flatMap(trial => [trial.image1_id, trial.image2_id])
 			const randomUsedImage = usedImages[Math.floor(Math.random() * usedImages.length)]
-			currentImages.value.push({ id: randomUsedImage, image_url: `/images/${randomUsedImage.toString().padStart(5, '0')}.jpg` })
+			currentImages.value.push({ id: randomUsedImage, image_url: `https://image.blog1.top/${randomUsedImage.toString().padStart(5, '0')}.jpg` })
 			allImages.value = []
 		}
 		else {
 			// 如果没有剩余图片，从已使用的图片中随机选择两张
 			const usedImages = trialData.value.flatMap(trial => [trial.image1_id, trial.image2_id])
 			const shuffledUsedImages = usedImages.sort(() => 0.5 - Math.random())
-			currentImages.value = shuffledUsedImages.slice(0, 2).map(id => ({ id, image_url: `/images/${id.toString().padStart(5, '0')}.jpg` }))
+			currentImages.value = shuffledUsedImages.slice(0, 2).map(id => ({ id, image_url: `https://image.blog1.top/${id.toString().padStart(5, '0')}.jpg` }))
 		}
 	}
 	startTime.value = Date.now()
@@ -355,10 +355,10 @@ function loadImages() {
 	else {
 		// 如果没有保存的数据，初始化图片数组
 		for (let i = 0; i < 500; i++) {
-			allImages.value.push({ id: i, image_url: `/images/${i.toString().padStart(5, '0')}.jpg` })
+			allImages.value.push({ id: i, image_url: `https://image.blog1.top/${i.toString().padStart(5, '0')}.jpg` })
 		}
 		catchImages.value = [
-			{ id: 'empty', image_url: '/catch_images/empty.jpg' },
+			{ id: 'empty', image_url: 'https://image.blog1.top/empty.jpg' },
 		]
 		// 随机生成5个catch trial的索引
 		while (catchTrialIndices.value.length < 5) {

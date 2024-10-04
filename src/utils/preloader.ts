@@ -23,12 +23,12 @@ export function preloadImages(progressCallback: (_progress: number) => void): Pr
 
 		for (let i = 0; i < 500; i++) {
 			const img = new Image()
-			img.src = `/images/${i.toString().padStart(5, '0')}.jpg`
+			img.src = `https://image.blog1.top/${i.toString().padStart(5, '0')}.jpg`
 			img.onload = img.onerror = updateProgress
 		}
 
 		// Preload catch trial images
-		const catchImageUrls = ['/catch_images/empty.jpg', '/catch_images/hard.jpg']
+		const catchImageUrls = ['https://image.blog1.top/empty.jpg', 'https://image.blog1.top/hard.jpg']
 		catchImageUrls.forEach((url) => {
 			const img = new Image()
 			img.src = url
